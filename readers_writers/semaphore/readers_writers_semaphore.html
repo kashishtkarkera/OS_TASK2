@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>Readers-Writers (Semaphore)</title>
+<style>
+  body { font-family: Arial, sans-serif; margin: 20px; background: #f4f4f4; }
+  #actors { display: flex; flex-wrap: wrap; gap: 10px; margin: 15px 0; }
+  .box { width: 130px; padding: 12px; border-radius: 8px; text-align: center;
+         color: white; background: #888; }
+  .thinking { background: #888; }
+  .waiting  { background: #e0a000; }
+  .reading  { background: #2a8a2a; }
+  .writing  { background: #c03030; }
+  .done     { background: #3070c0; }
+  #resource { padding: 12px; background: white; border: 2px solid #333;
+              border-radius: 8px; margin-bottom: 10px; }
+  #log { height: 220px; overflow-y: scroll; background: white; padding: 8px;
+         border: 1px solid #aaa; font-size: 13px; }
+  button { padding: 6px 14px; margin-right: 5px; }
+</style>
+</head>
+<body>
+<h2>Readers-Writers Problem - Semaphore Version</h2>
+<div>
+  <button onclick="start()">Start</button>
+  <button onclick="pauseSim()">Pause</button>
+  <button onclick="resetSim()">Reset</button>
+  Speed (ms/event): <input id="speed" type="number" value="500" style="width:60px">
+</div>
+<div id="resource"></div>
+<div id="actors"></div>
+<h3>Event timeline</h3>
+<div id="log"></div>
+
+<script>
+var events = [{"time": 0.0, "who": "Reader 1", "state": "thinking", "value": 0, "note": ""}, {"time": 0.001, "who": "Reader 2", "state": "thinking", "value": 0, "note": ""}, {"time": 0.001, "who": "Reader 3", "state": "thinking", "value": 0, "note": ""}, {"time": 0.001, "who": "Writer 1", "state": "thinking", "value": 0, "note": ""}, {"time": 0.002, "who": "Writer 2", "state": "thinking", "value": 0, "note": ""}, {"time": 0.254, "who": "Writer 1", "state": "waiting", "value": 0, "note": "wants to write"}, {"time": 0.254, "who": "Writer 1", "state": "writing", "value": 1, "note": "wrote value 1"}, {"time": 0.372, "who": "Reader 2", "state": "waiting", "value": 1, "note": "wants to read"}, {"time": 0.457, "who": "Writer 2", "state": "waiting", "value": 1, "note": "wants to write"}, {"time": 0.535, "who": "Reader 3", "state": "waiting", "value": 1, "note": "wants to read"}, {"time": 0.574, "who": "Reader 1", "state": "waiting", "value": 1, "note": "wants to read"}, {"time": 0.76, "who": "Writer 1", "state": "done", "value": 1, "note": "finished writing"}, {"time": 0.76, "who": "Writer 1", "state": "thinking", "value": 1, "note": ""}, {"time": 0.76, "who": "Reader 2", "state": "reading", "value": 1, "note": "read value 1"}, {"time": 0.76, "who": "Reader 3", "state": "reading", "value": 1, "note": "read value 1"}, {"time": 0.76, "who": "Reader 1", "state": "reading", "value": 1, "note": "read value 1"}, {"time": 0.864, "who": "Reader 2", "state": "done", "value": 1, "note": "finished reading"}, {"time": 0.864, "who": "Reader 2", "state": "thinking", "value": 1, "note": ""}, {"time": 0.918, "who": "Reader 3", "state": "done", "value": 1, "note": "finished reading"}, {"time": 0.918, "who": "Reader 3", "state": "thinking", "value": 1, "note": ""}, {"time": 1.048, "who": "Reader 3", "state": "waiting", "value": 1, "note": "wants to read"}, {"time": 1.048, "who": "Reader 3", "state": "reading", "value": 1, "note": "read value 1"}, {"time": 1.117, "who": "Writer 1", "state": "waiting", "value": 1, "note": "wants to write"}, {"time": 1.169, "who": "Reader 2", "state": "waiting", "value": 1, "note": "wants to read"}, {"time": 1.169, "who": "Reader 2", "state": "reading", "value": 1, "note": "read value 1"}, {"time": 1.171, "who": "Reader 1", "state": "done", "value": 1, "note": "finished reading"}, {"time": 1.171, "who": "Reader 1", "state": "thinking", "value": 1, "note": ""}, {"time": 1.391, "who": "Reader 1", "state": "waiting", "value": 1, "note": "wants to read"}, {"time": 1.392, "who": "Reader 1", "state": "reading", "value": 1, "note": "read value 1"}, {"time": 1.432, "who": "Reader 3", "state": "done", "value": 1, "note": "finished reading"}, {"time": 1.432, "who": "Reader 3", "state": "thinking", "value": 1, "note": ""}, {"time": 1.687, "who": "Reader 2", "state": "done", "value": 1, "note": "finished reading"}, {"time": 1.687, "who": "Reader 2", "state": "thinking", "value": 1, "note": ""}, {"time": 1.872, "who": "Reader 1", "state": "done", "value": 1, "note": "finished reading"}, {"time": 1.872, "who": "Reader 1", "state": "thinking", "value": 1, "note": ""}, {"time": 1.872, "who": "Writer 2", "state": "writing", "value": 2, "note": "wrote value 2"}, {"time": 1.942, "who": "Reader 3", "state": "waiting", "value": 2, "note": "wants to read"}, {"time": 2.13, "who": "Writer 2", "state": "done", "value": 2, "note": "finished writing"}, {"time": 2.13, "who": "Writer 2", "state": "thinking", "value": 2, "note": ""}, {"time": 2.13, "who": "Writer 1", "state": "writing", "value": 3, "note": "wrote value 3"}, {"time": 2.236, "who": "Reader 2", "state": "waiting", "value": 3, "note": "wants to read"}, {"time": 2.26, "who": "Writer 1", "state": "done", "value": 3, "note": "finished writing"}, {"time": 2.26, "who": "Writer 1", "state": "thinking", "value": 3, "note": ""}, {"time": 2.26, "who": "Reader 3", "state": "reading", "value": 3, "note": "read value 3"}, {"time": 2.26, "who": "Reader 2", "state": "reading", "value": 3, "note": "read value 3"}, {"time": 2.379, "who": "Writer 1", "state": "waiting", "value": 3, "note": "wants to write"}, {"time": 2.387, "who": "Reader 1", "state": "waiting", "value": 3, "note": "wants to read"}, {"time": 2.387, "who": "Reader 1", "state": "reading", "value": 3, "note": "read value 3"}, {"time": 2.602, "who": "Reader 2", "state": "done", "value": 3, "note": "finished reading"}, {"time": 2.612, "who": "Writer 2", "state": "waiting", "value": 3, "note": "wants to write"}, {"time": 2.783, "who": "Reader 1", "state": "done", "value": 3, "note": "finished reading"}, {"time": 2.847, "who": "Reader 3", "state": "done", "value": 3, "note": "finished reading"}, {"time": 2.848, "who": "Writer 1", "state": "writing", "value": 4, "note": "wrote value 4"}, {"time": 3.212, "who": "Writer 1", "state": "done", "value": 4, "note": "finished writing"}, {"time": 3.212, "who": "Writer 2", "state": "writing", "value": 5, "note": "wrote value 5"}, {"time": 3.538, "who": "Writer 2", "state": "done", "value": 5, "note": "finished writing"}, {"time": 3.538, "who": "Writer 2", "state": "thinking", "value": 5, "note": ""}, {"time": 3.915, "who": "Writer 2", "state": "waiting", "value": 5, "note": "wants to write"}, {"time": 3.915, "who": "Writer 2", "state": "writing", "value": 6, "note": "wrote value 6"}, {"time": 4.046, "who": "Writer 2", "state": "done", "value": 6, "note": "finished writing"}];
+var index = 0;
+var timer = null;
+var states = {};
+
+// build the list of threads from the events
+events.forEach(function (e) { states[e.who] = "thinking"; });
+
+function draw(value) {
+  var readers = 0, writers = 0;
+  for (var name in states) {
+    if (states[name] == "reading") readers++;
+    if (states[name] == "writing") writers++;
+  }
+  var status = "FREE";
+  if (writers > 0) status = "LOCKED by a writer (exclusive)";
+  else if (readers > 0) status = "OPEN to " + readers + " reader(s)";
+  document.getElementById("resource").innerHTML =
+    "<b>Shared resource</b> value = " + value + " | status: " + status;
+
+  var html = "";
+  for (var name in states) {
+    html += "<div class='box " + states[name] + "'>" + name + "<br>" + states[name] + "</div>";
+  }
+  document.getElementById("actors").innerHTML = html;
+}
+
+function step() {
+  if (index >= events.length) { pauseSim(); return; }
+  var e = events[index];
+  states[e.who] = e.state;
+  draw(e.value);
+  var line = "[" + e.time + "s] " + e.who + " -> " + e.state + " " + e.note;
+  document.getElementById("log").innerHTML += line + "<br>";
+  document.getElementById("log").scrollTop = 99999;
+  index++;
+}
+
+function start() {
+  if (timer) return;
+  timer = setInterval(step, document.getElementById("speed").value);
+}
+function pauseSim() { clearInterval(timer); timer = null; }
+function resetSim() {
+  pauseSim();
+  index = 0;
+  for (var name in states) states[name] = "thinking";
+  document.getElementById("log").innerHTML = "";
+  draw(0);
+}
+draw(0);
+</script>
+</body>
+</html>
